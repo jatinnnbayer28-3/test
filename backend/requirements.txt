@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic-settings
+pydantic
+google-cloud-firestore
+google-cloud-storage
+google-auth
+google-generativeai
+httpx
+python-multipart
+Pillow
+truststore
+certifi
+cachetools
+redis[hiredis]

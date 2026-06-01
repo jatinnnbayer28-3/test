@@ -1,0 +1,102 @@
+# ─────────────────────────────────────────────────
+# Credentials & Secrets (NEVER commit these)
+# ─────────────────────────────────────────────────
+*.json
+!package.json
+!package-lock.json
+!firestore.indexes.json
+!manifest.json
+!tsconfig.json
+!postcss.config.js
+!**/config.json
+!**/preprocessor_config.json
+
+service-account.json
+**/service-account*.json
+**/credentials*.json
+**/*-key.json
+**/*-keys.json
+**/gcp-*.json
+**/firebase-*.json
+**/*.pem
+**/*.key
+**/*.p12
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+!.env.example
+
+# ─────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─────────────────────────────────────────────────
+# Node.js
+# ─────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─────────────────────────────────────────────────
+# Build outputs
+# ─────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ─────────────────────────────────────────────────
+# IDE & OS
+# ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─────────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ─────────────────────────────────────────────────
+# ML Models (too large for git)
+# ─────────────────────────────────────────────────
+models_local/
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.h5
+
+# ─────────────────────────────────────────────────
+# Misc
+# ─────────────────────────────────────────────────
+.cache/
+*.tmp
+*.bak
