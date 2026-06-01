@@ -3,61 +3,60 @@ import ssl
 import traceback
 from contextlib import asynccontextmanager
 
-# ── Kill SSL certificate verification globally for EVERY transport ──
-# stdlib ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-_orig_create_default_context = ssl.create_default_context
+_is_production = os.environ.get("APP_ENV", "development") == "production"
 
-def _unverified_context(*args, **kwargs):
-    ctx = _orig_create_default_context(*args, **kwargs)
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    return ctx
+# SSL certificate hacks — only needed locally where system certs may be missing
+if not _is_production:
+    ssl._create_default_https_context = ssl._create_unverified_context
+    _orig_create_default_context = ssl.create_default_context
 
-ssl.create_default_context = _unverified_context
+    def _unverified_context(*args, **kwargs):
+        ctx = _orig_create_default_context(*args, **kwargs)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
 
-os.environ["PYTHONHTTPSVERIFY"] = "0"
-os.environ["CURL_CA_BUNDLE"] = ""
-os.environ["REQUESTS_CA_BUNDLE"] = ""
+    ssl.create_default_context = _unverified_context
 
-# urllib3 (used by requests / google-auth / google-cloud-storage)
-try:
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-except Exception:
-    pass
+    os.environ["PYTHONHTTPSVERIFY"] = "0"
+    os.environ["CURL_CA_BUNDLE"] = ""
+    os.environ["REQUESTS_CA_BUNDLE"] = ""
 
-# requests — make every Session default to verify=False
-try:
-    import requests
-    _orig_session_init = requests.Session.__init__
+    try:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    except Exception:
+        pass
 
-    def _patched_session_init(self, *a, **kw):
-        _orig_session_init(self, *a, **kw)
-        self.verify = False
+    try:
+        import requests
+        _orig_session_init = requests.Session.__init__
 
-    requests.Session.__init__ = _patched_session_init
-except Exception:
-    pass
+        def _patched_session_init(self, *a, **kw):
+            _orig_session_init(self, *a, **kw)
+            self.verify = False
 
-# httpx — make sync/async clients default to verify=False
-try:
-    import httpx
-    _orig_httpx_client_init = httpx.Client.__init__
-    _orig_httpx_async_init = httpx.AsyncClient.__init__
+        requests.Session.__init__ = _patched_session_init
+    except Exception:
+        pass
 
-    def _patched_httpx_init(self, *a, **kw):
-        kw.setdefault("verify", False)
-        _orig_httpx_client_init(self, *a, **kw)
+    try:
+        import httpx
+        _orig_httpx_client_init = httpx.Client.__init__
+        _orig_httpx_async_init = httpx.AsyncClient.__init__
 
-    def _patched_httpx_async_init(self, *a, **kw):
-        kw.setdefault("verify", False)
-        _orig_httpx_async_init(self, *a, **kw)
+        def _patched_httpx_init(self, *a, **kw):
+            kw.setdefault("verify", False)
+            _orig_httpx_client_init(self, *a, **kw)
 
-    httpx.Client.__init__ = _patched_httpx_init
-    httpx.AsyncClient.__init__ = _patched_httpx_async_init
-except Exception:
-    pass
+        def _patched_httpx_async_init(self, *a, **kw):
+            kw.setdefault("verify", False)
+            _orig_httpx_async_init(self, *a, **kw)
+
+        httpx.Client.__init__ = _patched_httpx_init
+        httpx.AsyncClient.__init__ = _patched_httpx_async_init
+    except Exception:
+        pass
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,10 +64,13 @@ from fastapi.responses import JSONResponse
 
 from core.config import settings
 
-os.environ.setdefault(
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    settings.GOOGLE_APPLICATION_CREDENTIALS,
-)
+# Only set GOOGLE_APPLICATION_CREDENTIALS if the file exists (local dev).
+# On Cloud Run, ADC is provided automatically via the attached service account.
+if settings.GOOGLE_APPLICATION_CREDENTIALS and os.path.isfile(settings.GOOGLE_APPLICATION_CREDENTIALS):
+    os.environ.setdefault(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        settings.GOOGLE_APPLICATION_CREDENTIALS,
+    )
 
 
 @asynccontextmanager
@@ -96,7 +98,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173"],
+    allow_origins=[
+        settings.FRONTEND_URL,
+        "http://localhost:5173",
+        "https://wardrobeai-frontend-959058619084.asia-south1.run.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

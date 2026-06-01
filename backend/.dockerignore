@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+service-account.json
+*.json
+!firestore.indexes.json
+models_local/
+.DS_Store
+.git/
+.gitignore
+test_*.py
+preflight_check.py
